@@ -1,0 +1,6 @@
+@BdJobsCorporate_Corporate_Insert.API_HostAddress = http://localhost:5107
+
+GET {{BdJobsCorporate_Corporate_Insert.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
