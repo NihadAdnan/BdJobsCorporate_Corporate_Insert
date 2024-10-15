@@ -2,6 +2,10 @@
 using BdJobsCorporate_Corporate_Insert.Handler.Abstraction;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
+using System.Linq;
+using BdJobsCorporate_Corporate_Insert.DTO.DTOs;
 
 namespace BdJobsCorporate_Corporate_Insert.API.Controllers
 {
@@ -17,15 +21,41 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
         }
 
         [HttpPost("insert")]
-        public async Task<IActionResult> InsertCompany([FromBody] CompanyInsertRequest request)
+        public async Task<IActionResult> InsertCompany([FromBody] CorporateAccountRequest request)
         {
             if (request == null)
             {
                 return BadRequest("Invalid data.");
             }
 
+            // Validation checks
+            if (string.IsNullOrEmpty(request.Name) || string.IsNullOrEmpty(request.Email))
+            {
+                return BadRequest("Name and Email are required.");
+            }
+
+            if (request.Name.Length > 100 || request.Email.Length > 100)
+            {
+                return BadRequest("Name and Email length should be valid.");
+            }
+
             try
             {
+                // Check if the corporate account or user already exists
+                bool isCorporateAccountExist = await _companyService.IsCorporateAccountExist(request.Name);
+                bool isUserNameExist = await _companyService.IsUserNameExist(request.Email);
+
+                if (isCorporateAccountExist)
+                {
+                    return BadRequest("Corporate account already exists.");
+                }
+
+                if (isUserNameExist)
+                {
+                    return BadRequest("User with this email already exists.");
+                }
+
+                // Create the company profile
                 var companyProfile = new CompanyProfile
                 {
                     Name = request.Name,
@@ -33,22 +63,17 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     Business = request.Business,
                     Address = request.Address,
                     AddressBng = request.AddressBng,
-                    BillContact = request.BillContact,
                     City = request.City,
                     Country = request.Country,
                     Web = request.Web,
                     UpdatedDate = DateTime.Now,
                     Area = request.Area,
-                    IDcode = RandomString(8),
+                    IDcode = RandomString(8),  // Generate IDcode
                     OfflineCom = 0,
                     LicenseNo = request.LicenseNo,
                     RLNo = request.RLNo,
                     ThanaId = request.ThanaId,
                     DistrictId = request.DistrictId,
-                    ContactPerson = request.ContactPerson,
-                    Designation = request.Designation,
-                    Phone = request.Phone,
-                    Email = request.Email,
                     IsFacilityPWD = request.IsFacilityPWD,
                     Established = request.Established,
                     MinEmp = request.MinEmp,
@@ -56,6 +81,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     IsEntrepreneur = request.IsEntrepreneur
                 };
 
+                // Create the contact person
                 var contactPerson = new ContactPerson
                 {
                     ContactName = request.ContactPerson,
@@ -66,6 +92,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     Email = request.Email
                 };
 
+                // Attempt to insert the record
                 bool result = await _companyService.InsertRecordAsync(companyProfile, contactPerson);
 
                 if (result)
@@ -77,7 +104,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     return StatusCode(500, "An error occurred while inserting the company.");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred: {ex.Message}");
             }
@@ -90,31 +117,5 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
-    }
-    public class CompanyInsertRequest
-    {
-        public string Name { get; set; }
-        public string NameBng { get; set; }
-        public string Business { get; set; }
-        public string Address { get; set; }
-        public string AddressBng { get; set; }
-        public string BillContact { get; set; }
-        public string City { get; set; }
-        public string Country { get; set; }
-        public string Web { get; set; }
-        public string Area { get; set; }
-        public string LicenseNo { get; set; }
-        public string RLNo { get; set; }
-        public int? ThanaId { get; set; }
-        public int? DistrictId { get; set; }
-        public string ContactPerson { get; set; }
-        public string Designation { get; set; }
-        public string Phone { get; set; }
-        public string Email { get; set; }
-        public int IsFacilityPWD { get; set; }
-        public int? Established { get; set; }
-        public int? MinEmp { get; set; }
-        public int? MaxEmp { get; set; }
-        public int? IsEntrepreneur { get; set; }
     }
 }
