@@ -3,10 +3,7 @@ using BdJobsCorporate_Corporate_Insert.Handler.Abstraction;
 using BdJobsCorporate_Corporate_Insert.Repository.Data;
 using BdJobsCorporate_Corporate_Insert.Repository.Repository.Abstraction;
 using System;
-using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BdJobsCorporate_Corporate_Insert.Handler.Service
@@ -50,32 +47,45 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
         {
             using (var connection = _context.CreateConnection())
             {
-                connection.Open();  // Replace OpenAsync() with Open()
+                connection.Open();
                 using (var transaction = connection.BeginTransaction())
                 {
                     try
                     {
-                        if (await _companyRepository.IsCorporateAccountExistAsync(companyProfile.Name, transaction))
+                        // Check if the corporate account already exists
+                        if (await _companyRepository.IsCorporateAccountExistAsync(companyProfile.CompanyName, transaction))
                         {
                             throw new Exception("Corporate account already exists.");
                         }
 
+                        // Check if the user email already exists
                         if (await _companyRepository.IsUserNameExistAsync(contactPerson.Email, transaction))
                         {
                             throw new Exception("User with this email already exists.");
                         }
 
-                        companyProfile.CP_ID = await _companyRepository.GetNextCompanyIdAsync();
-                        companyProfile.IDcode = RandomString(8);
+                        // Generate new company ID and ID code
+                        companyProfile.CorporateAccountID = (int)await _companyRepository.GetNextCompanyIdAsync();  // Explicit cast to int
+                        companyProfile.IDCode = RandomString(8); // Generate random 8-character ID code
 
+                        // Insert company profile
                         await _companyRepository.InsertCompanyProfileAsync(companyProfile, transaction);
 
-                        contactPerson.CP_ID = companyProfile.CP_ID;
+                        // Insert contact person linked to the company
+                        contactPerson.CP_ID = companyProfile.CorporateAccountID;
                         await _companyRepository.InsertContactPersonAsync(contactPerson, transaction);
 
-                        int contactId = await _companyRepository.GetContactIdAsync(companyProfile.CP_ID, transaction);
-                        await _companyRepository.UpdateCompanyProfileContactIdAsync(companyProfile.CP_ID, contactId, transaction);
+                        // Retrieve and update the contact ID in the company profile
+                        int contactId = await _companyRepository.GetContactIdAsync(companyProfile.CorporateAccountID, transaction);
+                        await _companyRepository.UpdateCompanyProfileContactIdAsync(companyProfile.CorporateAccountID, contactId, transaction);
 
+                        // Insert industry types if provided
+                        if (companyProfile.FacilitiesCompanyHave != null && companyProfile.FacilitiesCompanyHave.Any())
+                        {
+                            await _companyRepository.InsertIndustryTypesAsync(companyProfile.CorporateAccountID, companyProfile.FacilitiesCompanyHave, transaction);
+                        }
+
+                        // Commit transaction
                         transaction.Commit();
                         return true;
                     }
@@ -89,6 +99,7 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
         }
 
 
+        // Generates a random alphanumeric string of the specified length
         private string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -96,6 +107,5 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
-
     }
 }

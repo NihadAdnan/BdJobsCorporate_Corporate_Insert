@@ -2,7 +2,10 @@
 using BdJobsCorporate_Corporate_Insert.Repository.Data;
 using BdJobsCorporate_Corporate_Insert.Repository.Repository.Abstraction;
 using Dapper;
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 
 namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
 {
@@ -27,50 +30,49 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
             var query = "SELECT MAX(CP_ID) AS CompanyID FROM Dbo_Company_Profiles";
             using (var connection = _context.CreateConnection())
             {
-                connection.Open();  // Replace OpenAsync() with Open()
+                connection.Open();
                 var companyId = await connection.ExecuteScalarAsync<long?>(query) ?? 0;
                 return companyId + 1;
             }
         }
 
-
         public async Task InsertCompanyProfileAsync(CompanyProfile company, IDbTransaction transaction)
         {
             var query = @"
-        INSERT INTO Dbo_Company_Profiles 
-        (CP_ID, Name, NameBng, Business, Address, AddressBng, Bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
-        VALUES
-        (@CP_ID, @Name, @NameBng, @Business, @Address, @AddressBng, @BillContact, @City, @Country, @Web, @UpdatedDate, @Area, @IDcode, @OfflineCom, @LicenseNo, @RLNo, @ThanaId, @DistrictId, @ContactPerson, @Designation, @Phone, @Email, @IsFacilityPWD, @Established, @MinEmp, @MaxEmp, @IsEntrepreneur)";
+    INSERT INTO Dbo_Company_Profiles 
+    (CP_ID, Name, NameBng, Business, Address, AddressBng, Bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
+    VALUES
+    (@CorporateAccountID, @CompanyName, @CompanyBangla, @BusinessDescription, @CompanyAddress, @CompanyAddressBng, @BillContact, @City, @Country, @WebsiteUrl, @UpdatedDate, @Area, @IDCode, @OfflineCom, @BusinessLicenseNo, @RLNo, @ThanaId, @DistrictId, @ContactPerson, @Designation, @ContactPhone, @ContactEmail, @DisabilitiesFacility, @CompanyEstablished, @MinEmployee, @MaxEmployee, @IsEntrepreneur)";
 
             var connection = transaction.Connection;
             await connection.ExecuteAsync(query, new
             {
-                company.CP_ID,
-                company.Name,
-                company.NameBng,
-                company.Business,
-                company.Address,
-                company.AddressBng,
-                BillContact = company.BillContact,
+                company.CorporateAccountID,
+                company.CompanyName,
+                company.CompanyBangla,
+                company.BusinessDescription,       // Matching `BusinessDescription` to the class
+                company.CompanyAddress,
+                company.CompanyAddressBng,
+                BillContact = company.CompanyAddress, // Mapping BillContact from CompanyAddress if needed
                 company.City,
                 company.Country,
-                company.Web,
+                company.WebsiteUrl,               // Match the class `WebsiteUrl` to `Web` in SQL
                 UpdatedDate = DateTime.Now,
                 company.Area,
-                company.IDcode,
+                company.IDCode,
                 company.OfflineCom,
-                company.LicenseNo,
+                company.BusinessLicenseNo,
                 company.RLNo,
-                company.ThanaId,
+                company.ThanaId,                  // Ensure ThanaId and DistrictId are added to CompanyProfile if needed
                 company.DistrictId,
                 company.ContactPerson,
                 company.Designation,
-                company.Phone,
-                company.Email,
-                company.IsFacilityPWD,
-                company.Established,
-                company.MinEmp,
-                company.MaxEmp,
+                ContactPhone = company.ContactMobile,  // Mapping `ContactMobile` to `Phone`
+                company.ContactEmail,
+                company.DisabilitiesFacility,     // Ensure `DisabilitiesFacility` is matched with IsFacilityPWD
+                company.CompanyEstablished,
+                MinEmployee = company.ProvideTrainingForEmployee,  // Map correct training property if needed
+                MaxEmployee = company.ProvideTrainingForEmployee,  // Map correct training property if needed
                 company.IsEntrepreneur
             }, transaction);
         }
@@ -78,10 +80,10 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
         public async Task InsertContactPersonAsync(ContactPerson contactPerson, IDbTransaction transaction)
         {
             var query = @"
-        INSERT INTO ContactPersons
-        (CP_ID, ContactName, Designation, CurrentUser, BillingContact, Mobile, Email)
-        VALUES
-        (@CP_ID, @ContactName, @Designation, @CurrentUser, @BillingContact, @Mobile, @Email)";
+                INSERT INTO ContactPersons
+                (CP_ID, ContactName, Designation, CurrentUser, BillingContact, Mobile, Email)
+                VALUES
+                (@CP_ID, @ContactName, @Designation, @CurrentUser, @BillingContact, @Mobile, @Email)";
 
             var connection = transaction.Connection;
             await connection.ExecuteAsync(query, new
@@ -95,7 +97,6 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
                 contactPerson.Email
             }, transaction);
         }
-
 
         public async Task<int> GetContactIdAsync(long cpId, IDbTransaction transaction)
         {
@@ -112,32 +113,78 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
             await connection.ExecuteAsync(query, new { ContactId = contactId, CP_ID = cpId }, transaction);
         }
 
-        public async Task<bool> IsCorporateAccountExistAsync(string name, IDbTransaction transaction)
+        public async Task<bool> IsCorporateAccountExistAsync(string companyName, IDbTransaction transaction)
         {
-            var query = "SELECT COUNT(1) FROM Dbo_Company_Profiles WHERE Name = @Name";
+            var query = @"SELECT COUNT(1) 
+                  FROM Dbo_Company_Profiles 
+                  WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(Name, ' Ltd.', ''), ' Limited', ''), ' Ltd', ''), ' Pvt.', ''), ' Pvt', ''), ' Co.', ''), ' Company', ''), ' ', '')) = 
+                  LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(@CompanyName, ' Ltd.', ''), ' Limited', ''), ' Ltd', ''), ' Pvt.', ''), ' Pvt', ''), ' Co.', ''), ' Company', ''), ' ', ''))";
+
             var connection = transaction.Connection;
-            return await connection.ExecuteScalarAsync<int>(query, new { Name = name }, transaction) > 0;
+            return await connection.ExecuteScalarAsync<int>(query, new { CompanyName = companyName }, transaction) > 0;
         }
 
-        public async Task<bool> IsUserNameExistAsync(string email, IDbTransaction transaction)
+        //public async Task<bool> IsUserNameExistAsync(string userName, IDbTransaction transaction)
+        //{
+
+        //    var query = @"SELECT COUNT(1) 
+        //          FROM CorporateUserAccess 
+        //          WHERE LOWER(User_Name) = LOWER(@UserName)";
+
+        //    var connection = transaction.Connection;
+        //    return await connection.ExecuteScalarAsync<int>(query, new { UserName = userName }, transaction) > 0;
+        //}
+
+
+        //USERNAME HAVE PROBLEM - - > NOT CHECKING
+        public async Task<bool> IsUserNameExistAsync(string userName, IDbTransaction transaction)
         {
-            var query = "SELECT COUNT(1) FROM ContactPersons WHERE Email = @Email";
-            var connection = transaction.Connection;
-            return await connection.ExecuteScalarAsync<int>(query, new { Email = email }, transaction) > 0;
+            string query = "SELECT COUNT(1) FROM CorporateUserAccess WHERE User_Name = @UserName";
+
+            using (var connection = _context.CreateConnection())
+            {
+                var count = await connection.ExecuteScalarAsync<int>(query, new { UserName = userName });
+                return count > 0;
+            }
         }
 
         public async Task InsertIndustryTypesAsync(long companyId, List<int> industryTypeIds, IDbTransaction transaction)
         {
-            var query = @"
-                INSERT INTO CorporateAccountIndustryTypes (CompanyId, IndustryTypeId)
-                VALUES (@CompanyId, @IndustryTypeId)";
-
+            var query = "INSERT INTO IndustryWiseCompanies (CP_ID, Org_Type_ID) VALUES (@CompanyId, @IndustryTypeId)";
             var connection = transaction.Connection;
 
             foreach (var industryTypeId in industryTypeIds)
             {
                 await connection.ExecuteAsync(query, new { CompanyId = companyId, IndustryTypeId = industryTypeId }, transaction);
             }
+        }
+
+ 
+        public async Task<bool> ValidateCaptchaAsync(string sessionValue, string captchaValue)
+        {
+            // Example for accessing session and comparing captcha
+            var sessionCaptcha = "dffdf"; // Replace with real session access
+            if (string.IsNullOrEmpty(sessionCaptcha)) return false;
+
+            sessionCaptcha = sessionCaptcha.Replace("i", "I");
+            captchaValue = captchaValue.Replace("i", "I");
+
+            return string.Equals(sessionCaptcha, captchaValue, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public async Task<bool> IsHackingAttemptAsync(string input)
+        {
+            string[] hackingPatterns = { "'", "%", "response.end", ">", "<", "\"" };
+
+            foreach (var pattern in hackingPatterns)
+            {
+                if (input.Contains(pattern))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
