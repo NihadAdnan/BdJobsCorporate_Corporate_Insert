@@ -50,12 +50,11 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
         {
             using (var connection = _context.CreateConnection())
             {
-                connection.Open();
+                connection.Open();  // Replace OpenAsync() with Open()
                 using (var transaction = connection.BeginTransaction())
                 {
                     try
                     {
-                        // Validate if the corporate account or user exists
                         if (await _companyRepository.IsCorporateAccountExistAsync(companyProfile.Name, transaction))
                         {
                             throw new Exception("Corporate account already exists.");
@@ -66,27 +65,21 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
                             throw new Exception("User with this email already exists.");
                         }
 
-                        // Generate the next company ID and a random ID code
                         companyProfile.CP_ID = await _companyRepository.GetNextCompanyIdAsync();
-                        companyProfile.IDcode = RandomString(8); // Set the IDcode
+                        companyProfile.IDcode = RandomString(8);
 
-                        // Insert the company profile
                         await _companyRepository.InsertCompanyProfileAsync(companyProfile, transaction);
 
-                        // Prepare the contact person
                         contactPerson.CP_ID = companyProfile.CP_ID;
                         await _companyRepository.InsertContactPersonAsync(contactPerson, transaction);
 
-                        // Get the contact ID for the inserted contact person
                         int contactId = await _companyRepository.GetContactIdAsync(companyProfile.CP_ID, transaction);
-
-                        // Update the company profile with the contact ID
                         await _companyRepository.UpdateCompanyProfileContactIdAsync(companyProfile.CP_ID, contactId, transaction);
 
                         transaction.Commit();
                         return true;
                     }
-                    catch
+                    catch (Exception)
                     {
                         transaction.Rollback();
                         throw;
@@ -95,6 +88,7 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
             }
         }
 
+
         private string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -102,5 +96,6 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
+
     }
 }

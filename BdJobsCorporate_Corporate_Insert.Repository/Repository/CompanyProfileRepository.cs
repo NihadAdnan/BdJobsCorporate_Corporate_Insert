@@ -2,10 +2,7 @@
 using BdJobsCorporate_Corporate_Insert.Repository.Data;
 using BdJobsCorporate_Corporate_Insert.Repository.Repository.Abstraction;
 using Dapper;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Threading.Tasks;
 
 namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
 {
@@ -30,34 +27,75 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
             var query = "SELECT MAX(CP_ID) AS CompanyID FROM Dbo_Company_Profiles";
             using (var connection = _context.CreateConnection())
             {
+                connection.Open();  // Replace OpenAsync() with Open()
                 var companyId = await connection.ExecuteScalarAsync<long?>(query) ?? 0;
                 return companyId + 1;
             }
         }
 
+
         public async Task InsertCompanyProfileAsync(CompanyProfile company, IDbTransaction transaction)
         {
             var query = @"
-                INSERT INTO Dbo_Company_Profiles 
-                (CP_ID, Name, NameBng, Business, Address, AddressBng, Bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
-                VALUES
-                (@CP_ID, @Name, @NameBng, @Business, @Address, @AddressBng, @BillContact, @City, @Country, @Web, @UpdatedDate, @Area, @IDcode, @OfflineCom, @LicenseNo, @RLNo, @ThanaId, @DistrictId, @ContactPerson, @Designation, @Phone, @Email, @IsFacilityPWD, @Established, @MinEmp, @MaxEmp, @IsEntrepreneur)";
+        INSERT INTO Dbo_Company_Profiles 
+        (CP_ID, Name, NameBng, Business, Address, AddressBng, Bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
+        VALUES
+        (@CP_ID, @Name, @NameBng, @Business, @Address, @AddressBng, @BillContact, @City, @Country, @Web, @UpdatedDate, @Area, @IDcode, @OfflineCom, @LicenseNo, @RLNo, @ThanaId, @DistrictId, @ContactPerson, @Designation, @Phone, @Email, @IsFacilityPWD, @Established, @MinEmp, @MaxEmp, @IsEntrepreneur)";
 
             var connection = transaction.Connection;
-            await connection.ExecuteAsync(query, company, transaction);
+            await connection.ExecuteAsync(query, new
+            {
+                company.CP_ID,
+                company.Name,
+                company.NameBng,
+                company.Business,
+                company.Address,
+                company.AddressBng,
+                BillContact = company.BillContact,
+                company.City,
+                company.Country,
+                company.Web,
+                UpdatedDate = DateTime.Now,
+                company.Area,
+                company.IDcode,
+                company.OfflineCom,
+                company.LicenseNo,
+                company.RLNo,
+                company.ThanaId,
+                company.DistrictId,
+                company.ContactPerson,
+                company.Designation,
+                company.Phone,
+                company.Email,
+                company.IsFacilityPWD,
+                company.Established,
+                company.MinEmp,
+                company.MaxEmp,
+                company.IsEntrepreneur
+            }, transaction);
         }
 
         public async Task InsertContactPersonAsync(ContactPerson contactPerson, IDbTransaction transaction)
         {
             var query = @"
-                INSERT INTO ContactPersons
-                (CP_ID, ContactName, Designation, CurrentUser, BillingContact, Mobile, Email)
-                VALUES
-                (@CP_ID, @ContactName, @Designation, @CurrentUser, @BillingContact, @Mobile, @Email)";
+        INSERT INTO ContactPersons
+        (CP_ID, ContactName, Designation, CurrentUser, BillingContact, Mobile, Email)
+        VALUES
+        (@CP_ID, @ContactName, @Designation, @CurrentUser, @BillingContact, @Mobile, @Email)";
 
             var connection = transaction.Connection;
-            await connection.ExecuteAsync(query, contactPerson, transaction);
+            await connection.ExecuteAsync(query, new
+            {
+                contactPerson.CP_ID,
+                contactPerson.ContactName,
+                contactPerson.Designation,
+                contactPerson.CurrentUser,
+                contactPerson.BillingContact,
+                contactPerson.Mobile,
+                contactPerson.Email
+            }, transaction);
         }
+
 
         public async Task<int> GetContactIdAsync(long cpId, IDbTransaction transaction)
         {

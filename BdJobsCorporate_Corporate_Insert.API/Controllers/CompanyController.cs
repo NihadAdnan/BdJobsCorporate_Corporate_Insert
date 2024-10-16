@@ -47,12 +47,12 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
 
                 if (isCorporateAccountExist)
                 {
-                    return BadRequest("Corporate account already exists.");
+                    return Conflict("Corporate account already exists.");
                 }
 
                 if (isUserNameExist)
                 {
-                    return BadRequest("User with this email already exists.");
+                    return Conflict("User with this email already exists.");
                 }
 
                 // Create the company profile
@@ -117,5 +117,6 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
+
     }
 }
