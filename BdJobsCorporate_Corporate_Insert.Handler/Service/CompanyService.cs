@@ -31,19 +31,19 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
             }
         }
 
-        public async Task<bool> IsUserNameExist(string email)
+        public async Task<bool> IsUserNameExist(string userName)
         {
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
                 using (var transaction = connection.BeginTransaction())
                 {
-                    return await _companyRepository.IsUserNameExistAsync(email, transaction);
+                    return await _companyRepository.IsUserNameExistAsync(userName, transaction);
                 }
             }
         }
 
-        public async Task<bool> InsertRecordAsync(CompanyProfile companyProfile, ContactPerson contactPerson)
+        public async Task<bool> InsertRecordAsync(CompanyProfile companyProfile, ContactPerson contactPerson, CorporateUserAccess corporateUserAccess)
         {
             using (var connection = _context.CreateConnection())
             {
@@ -59,7 +59,7 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
                         }
 
                         // Check if the user email already exists
-                        if (await _companyRepository.IsUserNameExistAsync(contactPerson.Email, transaction))
+                        if (await _companyRepository.IsUserNameExistAsync(corporateUserAccess.UserName, transaction))
                         {
                             throw new Exception("User with this email already exists.");
                         }
@@ -80,9 +80,9 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
                         await _companyRepository.UpdateCompanyProfileContactIdAsync(companyProfile.CorporateAccountID, contactId, transaction);
 
                         // Insert industry types if provided
-                        if (companyProfile.FacilitiesCompanyHave != null && companyProfile.FacilitiesCompanyHave.Any())
+                        if (companyProfile.DisabilityTypes != null && companyProfile.DisabilityTypes.Any())
                         {
-                            await _companyRepository.InsertIndustryTypesAsync(companyProfile.CorporateAccountID, companyProfile.FacilitiesCompanyHave, transaction);
+                            await _companyRepository.InsertIndustryTypesAsync(companyProfile.CorporateAccountID, companyProfile.DisabilityTypes, transaction);
                         }
 
                         // Commit transaction
@@ -97,7 +97,6 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
                 }
             }
         }
-
 
         // Generates a random alphanumeric string of the specified length
         private string RandomString(int length)

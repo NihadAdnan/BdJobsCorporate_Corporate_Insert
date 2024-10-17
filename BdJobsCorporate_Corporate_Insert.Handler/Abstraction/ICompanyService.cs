@@ -6,7 +6,7 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Abstraction
     public interface ICompanyService
     {
         Task<bool> IsCorporateAccountExist(string name);
-        Task<bool> IsUserNameExist(string email);
-        Task<bool> InsertRecordAsync(CompanyProfile companyProfile, ContactPerson contactPerson);
+        Task<bool> IsUserNameExist(string userName);
+        Task<bool> InsertRecordAsync(CompanyProfile companyProfile, ContactPerson contactPerson, CorporateUserAccess corporateUserAccess);
     }
 }

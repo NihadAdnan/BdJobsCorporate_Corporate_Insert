@@ -50,29 +50,29 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
                 company.CorporateAccountID,
                 company.CompanyName,
                 company.CompanyBangla,
-                company.BusinessDescription,       // Matching `BusinessDescription` to the class
+                company.BusinessDescription,      
                 company.CompanyAddress,
                 company.CompanyAddressBng,
-                BillContact = company.CompanyAddress, // Mapping BillContact from CompanyAddress if needed
+                BillContact = company.CompanyAddress, 
                 company.City,
                 company.Country,
-                company.WebsiteUrl,               // Match the class `WebsiteUrl` to `Web` in SQL
+                company.WebsiteUrl,               
                 UpdatedDate = DateTime.Now,
                 company.Area,
                 company.IDCode,
                 company.OfflineCom,
                 company.BusinessLicenseNo,
                 company.RLNo,
-                company.ThanaId,                  // Ensure ThanaId and DistrictId are added to CompanyProfile if needed
+                company.ThanaId,                 
                 company.DistrictId,
                 company.ContactPerson,
                 company.Designation,
-                ContactPhone = company.ContactMobile,  // Mapping `ContactMobile` to `Phone`
+                ContactPhone = company.ContactMobile,  
                 company.ContactEmail,
-                company.DisabilitiesFacility,     // Ensure `DisabilitiesFacility` is matched with IsFacilityPWD
+                company.DisabilitiesFacility,     
                 company.CompanyEstablished,
-                MinEmployee = company.ProvideTrainingForEmployee,  // Map correct training property if needed
-                MaxEmployee = company.ProvideTrainingForEmployee,  // Map correct training property if needed
+                MinEmployee = company.ProvideTrainingForEmployee,  
+                MaxEmployee = company.ProvideTrainingForEmployee, 
                 company.IsEntrepreneur
             }, transaction);
         }
@@ -124,28 +124,20 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
             return await connection.ExecuteScalarAsync<int>(query, new { CompanyName = companyName }, transaction) > 0;
         }
 
-        //public async Task<bool> IsUserNameExistAsync(string userName, IDbTransaction transaction)
-        //{
-
-        //    var query = @"SELECT COUNT(1) 
-        //          FROM CorporateUserAccess 
-        //          WHERE LOWER(User_Name) = LOWER(@UserName)";
-
-        //    var connection = transaction.Connection;
-        //    return await connection.ExecuteScalarAsync<int>(query, new { UserName = userName }, transaction) > 0;
-        //}
-
-
-        //USERNAME HAVE PROBLEM - - > NOT CHECKING
         public async Task<bool> IsUserNameExistAsync(string userName, IDbTransaction transaction)
         {
-            string query = "SELECT COUNT(1) FROM CorporateUserAccess WHERE User_Name = @UserName";
+           
+            var query = @"SELECT COUNT(1) 
+                  FROM CorporateUserAccess 
+                  WHERE LOWER(User_Name) = LOWER(@UserName)";
 
-            using (var connection = _context.CreateConnection())
-            {
-                var count = await connection.ExecuteScalarAsync<int>(query, new { UserName = userName });
-                return count > 0;
-            }
+            var connection = transaction.Connection;
+
+          
+            int userCount = await connection.ExecuteScalarAsync<int>(query, new { UserName = userName }, transaction);
+
+          
+            return userCount > 0;
         }
 
         public async Task InsertIndustryTypesAsync(long companyId, List<int> industryTypeIds, IDbTransaction transaction)

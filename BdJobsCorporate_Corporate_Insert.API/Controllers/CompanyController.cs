@@ -28,12 +28,12 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
             }
 
             // Validation checks
-            if (string.IsNullOrEmpty(request.txtCompanyName) || string.IsNullOrEmpty(request.txtContactEmail))
+            if (string.IsNullOrEmpty(request.txtCompanyName) || string.IsNullOrEmpty(request.txtUserName))
             {
-                return BadRequest("Company Name and Contact Email are required.");
+                return BadRequest("Company Name and User Name are required.");
             }
 
-            if (request.txtCompanyName.Length > 100 || request.txtContactEmail.Length > 100)
+            if (request.txtCompanyName.Length > 100 || request.txtUserName.Length > 100)
             {
                 return BadRequest("Company Name and Contact Email length should not exceed 100 characters.");
             }
@@ -42,7 +42,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
             {
                 // Check if the corporate account or user already exists
                 bool isCorporateAccountExist = await _companyService.IsCorporateAccountExist(request.txtCompanyName);
-                bool isUserNameExist = await _companyService.IsUserNameExist(request.txtContactEmail);
+                bool isUserNameExist = await _companyService.IsUserNameExist(request.txtUserName);
 
                 if (isCorporateAccountExist)
                 {
@@ -51,7 +51,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
 
                 if (isUserNameExist)
                 {
-                    return Conflict("User with this email already exists.");
+                    return Conflict("User with this user name already exists.");
                 }
 
                 // Create the company profile
@@ -75,7 +75,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     MaxEmployee = ParseEmployeeRange(request.ComSize).Item2,
                     ProvideTrainingForEmployee = request.provideTrainingForEmployee,
                     DisabilityTypes = request.whatFacilityCompanyHave.Split(',').Select(int.Parse).ToList(),
-                    IDCode = RandomString(8) // Generate IDcode
+                    IDCode = RandomString(8) // Generate ID code
                 };
 
                 // Create the contact person
@@ -89,8 +89,14 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     Email = request.txtContactEmail
                 };
 
-                // Attempt to insert the record
-                bool result = await _companyService.InsertRecordAsync(companyProfile, contactPerson);
+                // Create CorporateUserAccess (if applicable)
+                var corporateUserAccess = new CorporateUserAccess
+                {
+                    UserName = request.txtUserName 
+                };
+
+               
+                bool result = await _companyService.InsertRecordAsync(companyProfile, contactPerson, corporateUserAccess);
 
                 if (result)
                 {
@@ -99,7 +105,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                         Success = true,
                         Message = "Company inserted successfully.",
                         CorporateAccountID = companyProfile.CorporateAccountID,
-                        UserName = request.txtUserName,
+                        UserName = corporateUserAccess.UserName,
                         ContactEmail = request.txtContactEmail
                     });
                 }
@@ -114,7 +120,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
             }
         }
 
-        // Helper method to generate a random string for IDCode
+
         private string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -123,7 +129,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-        // Helper method to parse employee range from string (e.g., "51-100")
+  
         private (int, int) ParseEmployeeRange(string employeeRange)
         {
             if (string.IsNullOrEmpty(employeeRange)) return (0, 0);
