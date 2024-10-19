@@ -27,7 +27,6 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                 return BadRequest("Invalid data.");
             }
 
-            // Validation checks
             if (string.IsNullOrEmpty(request.txtCompanyName) || string.IsNullOrEmpty(request.txtUserName))
             {
                 return BadRequest("Company Name and User Name are required.");
@@ -40,7 +39,6 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
 
             try
             {
-                // Check if the corporate account or user already exists
                 bool isCorporateAccountExist = await _companyService.IsCorporateAccountExist(request.txtCompanyName);
                 bool isUserNameExist = await _companyService.IsUserNameExist(request.txtUserName);
 
@@ -54,7 +52,6 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     return Conflict("User with this user name already exists.");
                 }
 
-                // Create the company profile
                 var companyProfile = new CompanyProfile
                 {
                     CompanyName = request.txtCompanyName,
@@ -75,10 +72,9 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     MaxEmployee = ParseEmployeeRange(request.ComSize).Item2,
                     ProvideTrainingForEmployee = request.provideTrainingForEmployee,
                     DisabilityTypes = request.whatFacilityCompanyHave.Split(',').Select(int.Parse).ToList(),
-                    IDCode = RandomString(8) // Generate ID code
+                    IDCode = RandomString(8) 
                 };
 
-                // Create the contact person
                 var contactPerson = new ContactPerson
                 {
                     ContactName = request.txtContactPerson,
@@ -89,7 +85,6 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     Email = request.txtContactEmail
                 };
 
-                // Create CorporateUserAccess (if applicable)
                 var corporateUserAccess = new CorporateUserAccess
                 {
                     UserName = request.txtUserName 

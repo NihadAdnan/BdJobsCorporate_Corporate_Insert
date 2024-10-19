@@ -1,7 +1,6 @@
 ﻿using BdJobsCorporate_Corporate_Insert.AggregateRoot.Entities;
 using BdJobsCorporate_Corporate_Insert.Handler.Abstraction;
 using BdJobsCorporate_Corporate_Insert.Repository.Data;
-using BdJobsCorporate_Corporate_Insert.Repository.Repository.Abstraction;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -83,6 +82,21 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
                         if (companyProfile.DisabilityTypes != null && companyProfile.DisabilityTypes.Any())
                         {
                             await _companyRepository.InsertIndustryTypesAsync(companyProfile.CorporateAccountID, companyProfile.DisabilityTypes, transaction);
+                        }
+
+                        // Insert user access details
+                        await _companyRepository.InsertUserAccessAsync(companyProfile.CorporateAccountID, contactId, corporateUserAccess.UserName, corporateUserAccess.Password, transaction);
+
+                        // Insert business details if provided
+                        //if (!string.IsNullOrEmpty(corporateUserAccess.BusinessName) && !string.IsNullOrEmpty(corporateUserAccess.BusinessDetail))
+                        //{
+                        //    await _companyRepository.InsertBusinessDetailsAsync(companyProfile.CorporateAccountID, corporateUserAccess.BusinessName, corporateUserAccess.BusinessDetail, corporateUserAccess.PostedBy, transaction);
+                        //}
+
+                        // Insert entrepreneurship details if required
+                        if (corporateUserAccess.ContactId > 0)
+                        {
+                            await _companyRepository.InsertEntrepreneurshipAsync(companyProfile.CorporateAccountID, corporateUserAccess.ContactId, transaction);
                         }
 
                         // Commit transaction

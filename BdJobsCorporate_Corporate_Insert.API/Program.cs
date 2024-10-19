@@ -2,7 +2,6 @@ using BdJobsCorporate_Corporate_Insert.Handler.Abstraction;
 using BdJobsCorporate_Corporate_Insert.Handler.Service;
 using BdJobsCorporate_Corporate_Insert.Repository.Data;
 using BdJobsCorporate_Corporate_Insert.Repository.Repository;
-using BdJobsCorporate_Corporate_Insert.Repository.Repository.Abstraction;
 
 var builder = WebApplication.CreateBuilder(args);
 
