@@ -2,7 +2,7 @@
 using BdJobsCorporate_Corporate_Insert.Handler.Abstraction;
 using BdJobsCorporate_Corporate_Insert.Repository.Data;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace BdJobsCorporate_Corporate_Insert.Handler.Service
@@ -42,7 +42,7 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
             }
         }
 
-        public async Task<bool> InsertRecordAsync(CompanyProfile companyProfile, ContactPerson contactPerson, CorporateUserAccess corporateUserAccess)
+        public async Task InsertRecordAsync(CompanyProfile companyProfile, ContactPerson contactPerson, CorporateUserAccess corporateUserAccess)
         {
             using (var connection = _context.CreateConnection())
             {
@@ -51,74 +51,37 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
                 {
                     try
                     {
-                        // Check if the corporate account already exists
                         if (await _companyRepository.IsCorporateAccountExistAsync(companyProfile.CompanyName, transaction))
                         {
                             throw new Exception("Corporate account already exists.");
                         }
 
-                        // Check if the user email already exists
-                        if (await _companyRepository.IsUserNameExistAsync(corporateUserAccess.UserName, transaction))
-                        {
-                            throw new Exception("User with this email already exists.");
-                        }
+                        long companyId = await _companyRepository.GetNextCompanyIdAsync();
 
-                        // Generate new company ID and ID code
-                        companyProfile.CorporateAccountID = (int)await _companyRepository.GetNextCompanyIdAsync();  // Explicit cast to int
-                        companyProfile.IDCode = RandomString(8); // Generate random 8-character ID code
-
-                        // Insert company profile
+                        companyProfile.CorporateAccountID = (int)companyId; 
                         await _companyRepository.InsertCompanyProfileAsync(companyProfile, transaction);
 
-                        // Insert contact person linked to the company
-                        contactPerson.CP_ID = companyProfile.CorporateAccountID;
+                        contactPerson.CorporateAccountID = (int)companyId; 
                         await _companyRepository.InsertContactPersonAsync(contactPerson, transaction);
 
-                        // Retrieve and update the contact ID in the company profile
-                        int contactId = await _companyRepository.GetContactIdAsync(companyProfile.CorporateAccountID, transaction);
-                        await _companyRepository.UpdateCompanyProfileContactIdAsync(companyProfile.CorporateAccountID, contactId, transaction);
+                        int contactId = await _companyRepository.GetContactIdAsync(companyId, transaction);
 
-                        // Insert industry types if provided
-                        if (companyProfile.DisabilityTypes != null && companyProfile.DisabilityTypes.Any())
-                        {
-                            await _companyRepository.InsertIndustryTypesAsync(companyProfile.CorporateAccountID, companyProfile.DisabilityTypes, transaction);
-                        }
+                        await _companyRepository.InsertUserAccessAsync(companyId, contactId, corporateUserAccess.UserName, corporateUserAccess.Password, transaction);
 
-                        // Insert user access details
-                        await _companyRepository.InsertUserAccessAsync(companyProfile.CorporateAccountID, contactId, corporateUserAccess.UserName, corporateUserAccess.Password, transaction);
-
-                        // Insert business details if provided
-                        //if (!string.IsNullOrEmpty(corporateUserAccess.BusinessName) && !string.IsNullOrEmpty(corporateUserAccess.BusinessDetail))
-                        //{
-                        //    await _companyRepository.InsertBusinessDetailsAsync(companyProfile.CorporateAccountID, corporateUserAccess.BusinessName, corporateUserAccess.BusinessDetail, corporateUserAccess.PostedBy, transaction);
-                        //}
-
-                        // Insert entrepreneurship details if required
-                        if (corporateUserAccess.ContactId > 0)
-                        {
-                            await _companyRepository.InsertEntrepreneurshipAsync(companyProfile.CorporateAccountID, corporateUserAccess.ContactId, transaction);
-                        }
-
-                        // Commit transaction
                         transaction.Commit();
-                        return true;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         transaction.Rollback();
-                        throw;
+                        throw new Exception("An error occurred while inserting the record.", ex);
                     }
                 }
             }
         }
 
-        // Generates a random alphanumeric string of the specified length
-        private string RandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
     }
 }
+
+
+
+

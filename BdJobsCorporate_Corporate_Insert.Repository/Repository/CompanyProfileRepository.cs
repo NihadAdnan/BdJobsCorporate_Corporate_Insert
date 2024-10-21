@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Numerics;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
@@ -58,143 +60,326 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
             return userCount > 0;
         }
 
+        //Fixed it
         public async Task InsertCompanyProfileAsync(CompanyProfile company, IDbTransaction transaction)
         {
             var query = @"
-                INSERT INTO Dbo_Company_Profiles 
-                (CP_ID, Name, NameBng, Business, Address, AddressBng, Bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
-                VALUES
-                (@CorporateAccountID, @CompanyName, @CompanyBangla, @BusinessDescription, @CompanyAddress, @CompanyAddressBng, @BillContact, @City, @Country, @WebsiteUrl, @UpdatedDate, @Area, @IDCode, 0, @BusinessLicenseNo, @RLNo, @ThanaId, @DistrictId, @ContactPerson, @Designation, @ContactPhone, @ContactEmail, @DisabilitiesFacility, @Established, @MinEmployee, @MaxEmployee, @IsEntrepreneur)";
+        INSERT INTO Dbo_Company_Profiles 
+        (CP_ID, Name, NameBng, Business, Address, AddressBng, bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, 
+         RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
+        VALUES
+        (@CorporateAccountID, @CompanyName, @CompanyBangla, @BusinessDescription, @Address, @CompanyAddressBng, @BillContact, @City, @Country, 
+         @WebsiteUrl, @UpdatedDate, @Area, @IDCode, 0, @BusinessLicenseNo, @RecruitingRLNO, @ThanaId, @DistrictId, @ContactPerson, @Designation, 
+         @Phone, @Email, @IsFacilityPWD, @Established, @MinEmp, @MaxEmp, @IsEntrepreneur)";
 
             var connection = transaction.Connection;
+
+            string address = company.Country == "Bangladesh" ? company.CompanyAddress : company.OutsideBdAddress;
+            string billContact = address.Substring(0, Math.Min(150, address.Length));
+
+            string facilityForDisability = company.FacilityForDisability ? "1" : "0";
+
             await connection.ExecuteAsync(query, new
             {
                 company.CorporateAccountID,
                 company.CompanyName,
                 company.CompanyBangla,
                 company.BusinessDescription,
-                Address = company.Country == "Bangladesh",
+                Address = address,
+                company.CompanyAddressBng,
+                BillContact = billContact,
+                City = company.Country == "Bangladesh" ? company.CityName : company.OutsideBdCity,
                 company.Country,
                 company.WebsiteUrl,
+                UpdatedDate = DateTime.Now,
                 company.Area,
                 company.IDCode,
                 company.BusinessLicenseNo,
-                company.RLNo,
+                RecruitingRLNO = string.IsNullOrEmpty(company.RecruitingRLNO) ? null : company.RecruitingRLNO,
                 company.ThanaId,
                 company.DistrictId,
                 company.ContactPerson,
                 company.Designation,
-                company.ContactMobile,
-                company.ContactEmail,
-                company.DisabilitiesFacility,
-                Established = DateTime.Now,
-                company.MinEmployee,
-                company.MaxEmployee,
-                IsEntrepreneur = company.IsEntrepreneur ? 1 : 0
+                company.Phone,
+                company.Email,
+                IsFacilityPWD = facilityForDisability,
+                company.Established,
+                company.MinEmp,
+                company.MaxEmp,
+                company.IsEntrepreneur
             }, transaction);
         }
 
+        //Fixed it
         public async Task InsertContactPersonAsync(ContactPerson contactPerson, IDbTransaction transaction)
         {
             var query = @"
-                INSERT INTO ContactPersons
-                (CP_ID, ContactName, Designation, CurrentUser, BillingContact, Mobile, Email)
-                VALUES
-                (@CP_ID, @ContactName, @Designation, 1, 0, @Mobile, @Email)";
+        INSERT INTO ContactPersons 
+        (CP_ID, ContactName, Designation, CurrentUser, BillingContact, Mobile, Email) 
+        VALUES 
+        (@CorporateAccountID, @ContactPerson, @Designation, 1, 0, @ContactMobile, @ContactEmail)";
 
             var connection = transaction.Connection;
+
             await connection.ExecuteAsync(query, new
             {
-                contactPerson.CP_ID,
-                contactPerson.ContactName,
-                contactPerson.Designation,
-                contactPerson.Mobile,
-                contactPerson.Email
+                CorporateAccountID = contactPerson.CorporateAccountID, 
+                ContactPerson = contactPerson.ContactName,              
+                Designation = contactPerson.Designation,
+                ContactMobile = contactPerson.Mobile,
+                ContactEmail = contactPerson.Email
             }, transaction);
         }
 
+        //fixed it
         public async Task<int> GetContactIdAsync(long cpId, IDbTransaction transaction)
         {
-            var query = "SELECT ContactId FROM ContactPersons WHERE CP_ID=@CP_ID AND CurrentUser=1";
+            if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+            if (transaction.Connection == null) throw new ArgumentNullException(nameof(transaction.Connection));
+
+            var query = "SELECT ContactId FROM ContactPersons WHERE CP_ID = @CP_ID AND CurrentUser = 1";
             var connection = transaction.Connection;
-            return await connection.ExecuteScalarAsync<int>(query, new { CP_ID = cpId }, transaction);
+
+            try
+            {
+                return await connection.ExecuteScalarAsync<int>(query, new { CP_ID = cpId }, transaction);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving the ContactId.", ex);
+            }
         }
 
+        //fixed it
         public async Task UpdateCompanyProfileContactIdAsync(long cpId, int contactId, IDbTransaction transaction)
         {
-            var query = "UPDATE Dbo_Company_Profiles SET ContactId=@ContactId WHERE CP_ID=@CP_ID";
+           
+            if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+            if (transaction.Connection == null) throw new ArgumentNullException(nameof(transaction.Connection));
+
+            var query = "UPDATE Dbo_Company_Profiles SET ContactId = @ContactId WHERE CP_ID = @CP_ID";
             var connection = transaction.Connection;
-            await connection.ExecuteAsync(query, new { ContactId = contactId, CP_ID = cpId }, transaction);
+
+            try
+            {
+                await connection.ExecuteAsync(query, new { ContactId = contactId, CP_ID = cpId }, transaction);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while updating the company profile's ContactId.", ex);
+            }
         }
 
+        //New code added
+        public async Task ProcessNewIndustryAsync(string strNewIndustry, string industryTypeIds, IDbTransaction transaction)
+        {
+            if (!string.IsNullOrEmpty(strNewIndustry))
+            {
+                strNewIndustry = strNewIndustry.Substring(0, strNewIndustry.Length - 3);
+
+                var arrNewIndustry = strNewIndustry.Split('#');
+                long intOrgId;
+
+                foreach (var element in arrNewIndustry)
+                {
+                    var arrSingleNewIndustryData = element.Split('_');
+
+                    if (industryTypeIds.Contains($",{arrSingleNewIndustryData[0]},"))
+                    {
+                        var isOrgExistSql = "SELECT ORG_TYPE_ID FROM bdjDataset..ORG_TYPES WHERE ORG_TYPE_NAME = @OrgTypeName";
+                        var orgTypeName = arrSingleNewIndustryData[1];
+
+                        var intOrgIdResult = await RetrieveDataAsync(isOrgExistSql, new { OrgTypeName = orgTypeName }, transaction);
+
+                        if (intOrgIdResult != null)
+                        {
+                            intOrgId = Convert.ToInt64(intOrgIdResult);
+                        }
+                        else
+                        {
+                            var strMaxOrgIdSQL = "SELECT MAX(ORG_TYPE_ID) FROM bdjDataset..ORG_TYPES";
+                            var maxOrgIdResult = await RetrieveDataAsync(strMaxOrgIdSQL, null, transaction);
+
+                            if (maxOrgIdResult == null)
+                            {
+                                intOrgId = 1;
+                            }
+                            else
+                            {
+                                intOrgId = Convert.ToInt64(maxOrgIdResult) + 1;
+                            }
+
+                            var strInsertOrg = @"
+                        INSERT INTO bdjDataset..ORG_TYPES (ORG_TYPE_ID, ORG_TYPE_NAME, IndustryId, UserDefined)
+                        VALUES (@OrgTypeId, @OrgTypeName, @IndustryId, 1)";
+
+                            var industryId = Convert.ToInt32(arrSingleNewIndustryData[2]);  
+
+                            await ExecuteQueryAsync(strInsertOrg, new
+                            {
+                                OrgTypeId = intOrgId,
+                                OrgTypeName = arrSingleNewIndustryData[1],
+                                IndustryId = industryId
+                            }, transaction);
+                        }
+
+                        industryTypeIds = industryTypeIds.Replace($",{arrSingleNewIndustryData[0]},", $",{intOrgId},");
+                    }
+                }
+            }
+        }
+
+        private async Task<object> RetrieveDataAsync(string query, object parameters, IDbTransaction transaction)
+        {
+            var connection = transaction.Connection;
+            return await connection.ExecuteScalarAsync(query, parameters, transaction);
+        }
+
+        private async Task ExecuteQueryAsync(string query, object parameters, IDbTransaction transaction)
+        {
+            var connection = transaction.Connection;
+            await connection.ExecuteAsync(query, parameters, transaction);
+        }
+
+        //Fixed it
         public async Task InsertIndustryTypesAsync(long companyId, List<int> industryTypeIds, IDbTransaction transaction)
         {
-            var query = "INSERT INTO IndustryWiseCompanies (CP_ID, Org_Type_ID) VALUES (@CompanyId, @IndustryTypeId)";
+            if (industryTypeIds == null || industryTypeIds.Count == 0)
+            {
+                return; 
+            }
+
+            StringBuilder values = new StringBuilder();
+
+            for (int i = 0; i < industryTypeIds.Count; i++)
+            {
+                if (values.Length > 0)
+                {
+                    values.Append(",");
+                }
+
+                values.Append($"({companyId}, {industryTypeIds[i]})");
+            }
+
+            string query = $"INSERT INTO IndustryWiseCompanies (CP_ID, Org_Type_ID) VALUES {values}";
+
             var connection = transaction.Connection;
 
-            foreach (var industryTypeId in industryTypeIds)
+            try
             {
-                await connection.ExecuteAsync(query, new { CompanyId = companyId, IndustryTypeId = industryTypeId }, transaction);
+                await connection.ExecuteAsync(query, null, transaction);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while inserting industry types into IndustryWiseCompanies.", ex);
             }
         }
 
+
+        //fixed it
         public async Task InsertUserAccessAsync(long companyId, int contactId, string userName, string password, IDbTransaction transaction)
         {
-            var query = @"
-                INSERT INTO CorporateUserAccess (CP_ID, ContactId, AdminUser, CreatedOn, User_Name, Passwrd)
-                VALUES(@CompanyId, @ContactId, 1, GETDATE(), @UserName, @Passwrd)";
             var connection = transaction.Connection;
-            var hashedPassword = GenerateSHA256Hash(password);
 
-            await connection.ExecuteAsync(query, new
+            string hashedPassword = GenerateSHA256Hash(password);
+            if (string.IsNullOrEmpty(hashedPassword))
             {
-                CompanyId = companyId,
-                ContactId = contactId,
-                UserName = userName,
-                Passwrd = hashedPassword
-            }, transaction);
-        }
+                throw new Exception("Unable to generate hashed password.");
+            }
 
-        public async Task InsertBusinessDetailsAsync(long companyId, string businessName, string businessDetail, int postedBy, IDbTransaction transaction)
-        {
             var query = @"
-                INSERT INTO COMPANY_BUSINESS (CP_ID, BusinessName, BusinessDetail, PostedBy, CreatedOn, IsAlternet)
-                VALUES(@CP_ID, @BusinessName, @BusinessDetail, @PostedBy, GETDATE(), 0)";
+        INSERT INTO CorporateUserAccess (CP_ID, ContactId, AdminUser, CreatedOn, User_Name, Passwrd)
+        VALUES(@CompanyId, @ContactId, 1, GETDATE(), @UserName, @Passwrd)";
 
-            var connection = transaction.Connection;
-            await connection.ExecuteAsync(query, new
+            try
             {
-                CP_ID = companyId,
-                BusinessName = businessName,
-                BusinessDetail = businessDetail,
-                PostedBy = postedBy
-            }, transaction);
-        }
-
-        public async Task InsertEntrepreneurshipAsync(long companyId, int userId, IDbTransaction transaction)
-        {
-            var query = @"
-                INSERT INTO edp.Entrepreneurship (CP_ID, ValidityDate, CreatedOn, UserID)
-                VALUES(@CP_ID, @ValidityDate, GETDATE(), @UserID)";
-
-            var connection = transaction.Connection;
-            await connection.ExecuteAsync(query, new
+                await connection.ExecuteAsync(query, new
+                {
+                    CompanyId = companyId,
+                    ContactId = contactId,
+                    UserName = userName,
+                    Passwrd = hashedPassword
+                }, transaction);
+            }
+            catch (Exception ex)
             {
-                CP_ID = companyId,
-                ValidityDate = DateTime.Now.AddMonths(2),
-                UserID = userId
-            }, transaction);
-        }
-
-        // Helper function for password hashing
-        public string GenerateSHA256Hash(string password) // Made public
-        {
-            using (var sha256 = System.Security.Cryptography.SHA256.Create())
-            {
-                var bytes = System.Text.Encoding.UTF8.GetBytes(password);
-                var hashBytes = sha256.ComputeHash(bytes);
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+                throw new Exception("Error inserting data into CorporateUserAccess", ex);
             }
         }
+
+        private string GenerateSHA256Hash(string password)
+        {
+            if (string.IsNullOrEmpty(password))
+            {
+                return string.Empty;
+            }
+
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                var sb = new System.Text.StringBuilder();
+                foreach (var b in bytes)
+                {
+                    sb.Append(b.ToString("x2")); 
+                }
+                return sb.ToString();
+            }
+        }
+
+
+        //Fixed it
+        public async Task InsertBusinessDetailsAsync(long companyId, string businessName, string businessDetail, int postedBy, IDbTransaction transaction)
+        {
+            if (!string.IsNullOrEmpty(businessDetail))
+            {
+                var query = @"
+            INSERT INTO COMPANY_BUSINESS (CP_ID, BusinessName, BusinessDetail, PostedBy, CreatedOn, IsAlternet)
+            VALUES (@CP_ID, @BusinessName, @BusinessDetail, @PostedBy, @CreatedOn, 0)";
+
+                var connection = transaction.Connection;
+
+                await connection.ExecuteAsync(query, new
+                {
+                    CP_ID = companyId,
+                    BusinessName = businessName,
+                    BusinessDetail = businessDetail,
+                    PostedBy = postedBy,
+                    CreatedOn = DateTime.Now 
+                }, transaction);
+            }
+        }
+
+        //Fixed it
+        public async Task InsertEntrepreneurshipAsync(long corporateAccountId, int contactId, bool isEntrepreneur, IDbTransaction transaction)
+        {
+            var connection = transaction.Connection;
+
+            if (isEntrepreneur)
+            {
+                string isEntpQuery = "SELECT COUNT(1) FROM edp.Entrepreneurship WHERE CP_ID = @CorporateAccountId";
+                var entrepreneurExists = await connection.ExecuteScalarAsync<int>(isEntpQuery, new { CorporateAccountId = corporateAccountId }, transaction);
+
+                if (entrepreneurExists == 0)
+                {
+                    string sqlUserIdQuery = "SELECT UserId FROM CorporateUserAccess WHERE ContactId = @ContactId";
+                    var userId = await connection.ExecuteScalarAsync<int?>(sqlUserIdQuery, new { ContactId = contactId }, transaction) ?? 0;
+
+                    var validityDate = DateTime.Now.AddMonths(2);
+
+                    string sqlInsertEntrepreneurship = @"
+                INSERT INTO edp.Entrepreneurship (CP_ID, ValidityDate, CreatedOn, UserID)
+                VALUES (@CorporateAccountId, @ValidityDate, GETDATE(), @UserId)";
+
+                    await connection.ExecuteAsync(sqlInsertEntrepreneurship, new
+                    {
+                        CorporateAccountId = corporateAccountId,
+                        ValidityDate = validityDate,
+                        UserId = userId
+                    }, transaction);
+                }
+            }
+        }
+
+
     }
 }

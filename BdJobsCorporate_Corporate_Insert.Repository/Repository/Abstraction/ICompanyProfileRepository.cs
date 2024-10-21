@@ -1,5 +1,7 @@
 ﻿using BdJobsCorporate_Corporate_Insert.AggregateRoot.Entities;
+using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 
 public interface ICompanyRepository
 {
@@ -14,8 +16,6 @@ public interface ICompanyRepository
     Task InsertIndustryTypesAsync(long companyId, List<int> industryTypeIds, IDbTransaction transaction);
     Task InsertUserAccessAsync(long companyId, int contactId, string userName, string password, IDbTransaction transaction);
     Task InsertBusinessDetailsAsync(long companyId, string businessName, string businessDetail, int postedBy, IDbTransaction transaction);
-    Task InsertEntrepreneurshipAsync(long companyId, int userId, IDbTransaction transaction);
-
-    // Include the hash generation method in the interface as well
-    string GenerateSHA256Hash(string password);
+    Task InsertEntrepreneurshipAsync(long corporateAccountId, int contactId, bool isEntrepreneur, IDbTransaction transaction);
+    Task ProcessNewIndustryAsync(string strNewIndustry, string industryTypeIds, IDbTransaction transaction); 
 }

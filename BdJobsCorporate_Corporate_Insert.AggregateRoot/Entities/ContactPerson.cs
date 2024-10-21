@@ -8,7 +8,7 @@ namespace BdJobsCorporate_Corporate_Insert.AggregateRoot.Entities
 {
     public class ContactPerson
     {
-        public int ContactID { get; set; }
+        public int CorporateAccountID { get; set; }
         public int CP_ID { get; set; }
         public string ContactName { get; set; }
         public string Designation { get; set; }

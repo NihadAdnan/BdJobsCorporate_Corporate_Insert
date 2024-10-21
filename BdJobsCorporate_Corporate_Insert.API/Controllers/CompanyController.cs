@@ -34,7 +34,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
 
             if (request.txtCompanyName.Length > 100 || request.txtUserName.Length > 100)
             {
-                return BadRequest("Company Name and Contact Email length should not exceed 100 characters.");
+                return BadRequest("Company Name and User Name length should not exceed 100 characters.");
             }
 
             try
@@ -58,21 +58,21 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     CompanyBangla = request.txtCompanyBangla,
                     CompanyAddress = request.txtCompanyAddress,
                     CompanyAddressBng = request.txtCompanyAddressBng,
-                    City = request.cboCity,
+                    CityName = request.cboCity,
                     Area = request.cboArea,
                     Country = request.Country,
                     WebsiteUrl = request.website_url,
                     BusinessLicenseNo = request.business_license_no,
-                    RLNo = request.rl_no,
-                    CompanyEstablished = int.Parse(request.txtCompanyEstablished),
+                    RecruitingRLNO = request.rl_no,
+                    Established = int.Parse(request.txtCompanyEstablished),
                     IsEntrepreneur = !string.IsNullOrEmpty(request.hidEntrepreneur),
-                    DisabilitiesFacility = request.DisabilitiesFacility == 1,
+                    DisabilityInclusionPolicy = request.DisabilitiesFacility == 1 ? 1 : 0,
                     FacilityForDisability = request.facilityForDisability == 1,
-                    MinEmployee = ParseEmployeeRange(request.ComSize).Item1,
-                    MaxEmployee = ParseEmployeeRange(request.ComSize).Item2,
+                    MinEmp = ParseEmployeeRange(request.ComSize).Item1,
+                    MaxEmp = ParseEmployeeRange(request.ComSize).Item2,
                     ProvideTrainingForEmployee = request.provideTrainingForEmployee,
                     DisabilityTypes = request.whatFacilityCompanyHave.Split(',').Select(int.Parse).ToList(),
-                    IDCode = RandomString(8) 
+                    IDCode = RandomString(8)
                 };
 
                 var contactPerson = new ContactPerson
@@ -87,34 +87,27 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
 
                 var corporateUserAccess = new CorporateUserAccess
                 {
-                    UserName = request.txtUserName 
+                    UserName = request.txtUserName,
+                    Password = request.txtPassword
                 };
 
                
-                bool result = await _companyService.InsertRecordAsync(companyProfile, contactPerson, corporateUserAccess);
+                await _companyService.InsertRecordAsync(companyProfile, contactPerson, corporateUserAccess);
 
-                if (result)
+                return Ok(new RegisterCompanyResponse
                 {
-                    return Ok(new RegisterCompanyResponse
-                    {
-                        Success = true,
-                        Message = "Company inserted successfully.",
-                        CorporateAccountID = companyProfile.CorporateAccountID,
-                        UserName = corporateUserAccess.UserName,
-                        ContactEmail = request.txtContactEmail
-                    });
-                }
-                else
-                {
-                    return StatusCode(500, "An error occurred while inserting the company.");
-                }
+                    Success = true,
+                    Message = "Company inserted successfully.",
+                    CorporateAccountID = companyProfile.CorporateAccountID,
+                    UserName = corporateUserAccess.UserName,
+                    ContactEmail = request.txtContactEmail
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred: {ex.Message}");
             }
         }
-
 
         private string RandomString(int length)
         {
@@ -124,7 +117,6 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-  
         private (int, int) ParseEmployeeRange(string employeeRange)
         {
             if (string.IsNullOrEmpty(employeeRange)) return (0, 0);
