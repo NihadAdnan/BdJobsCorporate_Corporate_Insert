@@ -157,9 +157,13 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
         //fixed it
         public async Task UpdateCompanyProfileContactIdAsync(long cpId, int contactId, IDbTransaction transaction)
         {
-           
             if (transaction == null) throw new ArgumentNullException(nameof(transaction));
             if (transaction.Connection == null) throw new ArgumentNullException(nameof(transaction.Connection));
+
+            if (cpId == 0)
+            {
+                throw new ArgumentException("CP_ID cannot be null or zero.", nameof(cpId));
+            }
 
             var query = "UPDATE Dbo_Company_Profiles SET ContactId = @ContactId WHERE CP_ID = @CP_ID";
             var connection = transaction.Connection;
@@ -174,63 +178,64 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
             }
         }
 
+
         //New code added
         public async Task ProcessNewIndustryAsync(string strNewIndustry, string industryTypeIds, IDbTransaction transaction)
         {
-            if (!string.IsNullOrEmpty(strNewIndustry))
-            {
-                strNewIndustry = strNewIndustry.Substring(0, strNewIndustry.Length - 3);
+            //if (!string.IsNullOrEmpty(strNewIndustry))
+            //{
+            //    strNewIndustry = strNewIndustry.Substring(0, strNewIndustry.Length - 3);
 
-                var arrNewIndustry = strNewIndustry.Split('#');
-                long intOrgId;
+            //    var arrNewIndustry = strNewIndustry.Split('#');
+            //    long intOrgId;
 
-                foreach (var element in arrNewIndustry)
-                {
-                    var arrSingleNewIndustryData = element.Split('_');
+            //    foreach (var element in arrNewIndustry)
+            //    {
+            //        var arrSingleNewIndustryData = element.Split('_');
 
-                    if (industryTypeIds.Contains($",{arrSingleNewIndustryData[0]},"))
-                    {
-                        var isOrgExistSql = "SELECT ORG_TYPE_ID FROM bdjDataset..ORG_TYPES WHERE ORG_TYPE_NAME = @OrgTypeName";
-                        var orgTypeName = arrSingleNewIndustryData[1];
+            //        if (industryTypeIds.Contains($",{arrSingleNewIndustryData[0]},"))
+            //        {
+            //            var isOrgExistSql = "SELECT ORG_TYPE_ID FROM bdjDataset..ORG_TYPES WHERE ORG_TYPE_NAME = @OrgTypeName";
+            //            var orgTypeName = arrSingleNewIndustryData[1];
 
-                        var intOrgIdResult = await RetrieveDataAsync(isOrgExistSql, new { OrgTypeName = orgTypeName }, transaction);
+            //            var intOrgIdResult = await RetrieveDataAsync(isOrgExistSql, new { OrgTypeName = orgTypeName }, transaction);
 
-                        if (intOrgIdResult != null)
-                        {
-                            intOrgId = Convert.ToInt64(intOrgIdResult);
-                        }
-                        else
-                        {
-                            var strMaxOrgIdSQL = "SELECT MAX(ORG_TYPE_ID) FROM bdjDataset..ORG_TYPES";
-                            var maxOrgIdResult = await RetrieveDataAsync(strMaxOrgIdSQL, null, transaction);
+            //            if (intOrgIdResult != null)
+            //            {
+            //                intOrgId = Convert.ToInt64(intOrgIdResult);
+            //            }
+            //            else
+            //            {
+            //                var strMaxOrgIdSQL = "SELECT MAX(ORG_TYPE_ID) FROM bdjDataset..ORG_TYPES";
+            //                var maxOrgIdResult = await RetrieveDataAsync(strMaxOrgIdSQL, null, transaction);
 
-                            if (maxOrgIdResult == null)
-                            {
-                                intOrgId = 1;
-                            }
-                            else
-                            {
-                                intOrgId = Convert.ToInt64(maxOrgIdResult) + 1;
-                            }
+            //                if (maxOrgIdResult == null)
+            //                {
+            //                    intOrgId = 1;
+            //                }
+            //                else
+            //                {
+            //                    intOrgId = Convert.ToInt64(maxOrgIdResult) + 1;
+            //                }
 
-                            var strInsertOrg = @"
-                        INSERT INTO bdjDataset..ORG_TYPES (ORG_TYPE_ID, ORG_TYPE_NAME, IndustryId, UserDefined)
-                        VALUES (@OrgTypeId, @OrgTypeName, @IndustryId, 1)";
+            //                var strInsertOrg = @"
+            //            INSERT INTO bdjDataset..ORG_TYPES (ORG_TYPE_ID, ORG_TYPE_NAME, IndustryId, UserDefined)
+            //            VALUES (@OrgTypeId, @OrgTypeName, @IndustryId, 1)";
 
-                            var industryId = Convert.ToInt32(arrSingleNewIndustryData[2]);  
+            //                var industryId = Convert.ToInt32(arrSingleNewIndustryData[2]);  
 
-                            await ExecuteQueryAsync(strInsertOrg, new
-                            {
-                                OrgTypeId = intOrgId,
-                                OrgTypeName = arrSingleNewIndustryData[1],
-                                IndustryId = industryId
-                            }, transaction);
-                        }
+            //                await ExecuteQueryAsync(strInsertOrg, new
+            //                {
+            //                    OrgTypeId = intOrgId,
+            //                    OrgTypeName = arrSingleNewIndustryData[1],
+            //                    IndustryId = industryId
+            //                }, transaction);
+            //            }
 
-                        industryTypeIds = industryTypeIds.Replace($",{arrSingleNewIndustryData[0]},", $",{intOrgId},");
-                    }
-                }
-            }
+            //            industryTypeIds = industryTypeIds.Replace($",{arrSingleNewIndustryData[0]},", $",{intOrgId},");
+            //        }
+            //    }
+            //}
         }
 
         private async Task<object> RetrieveDataAsync(string query, object parameters, IDbTransaction transaction)
@@ -324,7 +329,7 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
                 var sb = new System.Text.StringBuilder();
                 foreach (var b in bytes)
                 {
-                    sb.Append(b.ToString("x2")); 
+                    sb.Append(b.ToString("X2")); 
                 }
                 return sb.ToString();
             }
