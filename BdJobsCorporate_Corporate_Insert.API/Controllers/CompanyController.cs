@@ -88,7 +88,7 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                 var corporateUserAccess = new CorporateUserAccess
                 {
                     UserName = request.txtUserName,
-                    Password = request.txtPassword
+                    Passwrd = request.txtPassword
                 };
 
                
@@ -100,7 +100,8 @@ namespace BdJobsCorporate_Corporate_Insert.API.Controllers
                     Message = "Company inserted successfully.",
                     CorporateAccountID = companyProfile.CorporateAccountID,
                     UserName = corporateUserAccess.UserName,
-                    ContactEmail = request.txtContactEmail
+                    ContactEmail = request.txtContactEmail,
+                    Passwrd = request.txtPassword
                 });
             }
             catch (Exception ex)

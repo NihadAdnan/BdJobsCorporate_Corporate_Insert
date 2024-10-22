@@ -66,7 +66,7 @@ namespace BdJobsCorporate_Corporate_Insert.Handler.Service
 
                         int contactId = await _companyRepository.GetContactIdAsync(companyId, transaction);
 
-                        await _companyRepository.InsertUserAccessAsync(companyId, contactId, corporateUserAccess.UserName, corporateUserAccess.Password, transaction);
+                        await _companyRepository.InsertUserAccessAsync(companyId, contactId, corporateUserAccess.UserName, corporateUserAccess.Passwrd, transaction);
 
                         transaction.Commit();
                     }

@@ -64,17 +64,20 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
         public async Task InsertCompanyProfileAsync(CompanyProfile company, IDbTransaction transaction)
         {
             var query = @"
-        INSERT INTO Dbo_Company_Profiles 
-        (CP_ID, Name, NameBng, Business, Address, AddressBng, bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, 
-         RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
-        VALUES
-        (@CorporateAccountID, @CompanyName, @CompanyBangla, @BusinessDescription, @Address, @CompanyAddressBng, @BillContact, @City, @Country, 
-         @WebsiteUrl, @UpdatedDate, @Area, @IDCode, 0, @BusinessLicenseNo, @RecruitingRLNO, @ThanaId, @DistrictId, @ContactPerson, @Designation, 
-         @Phone, @Email, @IsFacilityPWD, @Established, @MinEmp, @MaxEmp, @IsEntrepreneur)";
+    INSERT INTO Dbo_Company_Profiles 
+    (CP_ID, Name, NameBng, Business, Address, AddressBng, bill_Contact, City, Country, Web, Updated_date, Area, IDcode, OfflineCom, LicenseNo, 
+     RLNo, ThanaId, DistrictId, Contact_Person, Designation, Phone, E_Mail, IsFacilityPWD, Established, MinEmp, MaxEmp, IsEntrepreneur)
+    VALUES
+    (@CorporateAccountID, @CompanyName, @CompanyBangla, @BusinessDescription, @Address, @CompanyAddressBng, @BillContact, @City, @Country, 
+     @WebsiteUrl, @UpdatedDate, @Area, @IDCode, 0, @BusinessLicenseNo, @RecruitingRLNO, @ThanaId, @DistrictId, @ContactPerson, @Designation, 
+     @Phone, @Email, @IsFacilityPWD, @Established, @MinEmp, @MaxEmp, @IsEntrepreneur)";
 
             var connection = transaction.Connection;
 
-            string address = company.Country == "Bangladesh" ? company.CompanyAddress : company.OutsideBdAddress;
+            string address = company.Country == "Bangladesh"
+                             ? company.CompanyAddress ?? string.Empty
+                             : company.OutsideBdAddress ?? string.Empty;
+
             string billContact = address.Substring(0, Math.Min(150, address.Length));
 
             string facilityForDisability = company.FacilityForDisability ? "1" : "0";
@@ -109,6 +112,7 @@ namespace BdJobsCorporate_Corporate_Insert.Repository.Repository
                 company.IsEntrepreneur
             }, transaction);
         }
+
 
         //Fixed it
         public async Task InsertContactPersonAsync(ContactPerson contactPerson, IDbTransaction transaction)

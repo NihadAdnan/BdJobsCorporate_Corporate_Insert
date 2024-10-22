@@ -4,8 +4,9 @@
     {
         public bool Success { get; set; }
         public string Message { get; set; }
-        public long CorporateAccountID { get; set; }  // ID of the newly created company (set to long if required)
-        public string UserName { get; set; }         // Username of the created account
+        public long CorporateAccountID { get; set; }  
+        public string UserName { get; set; }         
         public string ContactEmail { get; set; }
+        public string Passwrd { get; set; }
     }
 }
